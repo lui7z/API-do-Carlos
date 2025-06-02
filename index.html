@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>InfoNow - Painel Dinâmico</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+  <style>
+    body {
+      background: #f8f9fa;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      padding: 2rem 1rem;
+      background: #0d6efd;
+      color: white;
+      text-align: center;
+      font-weight: 700;
+      font-size: 1.8rem;
+    }
+    .card {
+      box-shadow: 0 4px 12px rgb(0 0 0 / 0.1);
+      border-radius: 0.8rem;
+      transition: transform 0.2s ease;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 20px rgb(0 0 0 / 0.15);
+    }
+    .icon {
+      font-size: 2.5rem;
+      color: #0d6efd;
+    }
+    #currencyInfo > div > div {
+      background: white;
+      border-radius: 0.5rem;
+      box-shadow: 0 2px 6px rgb(0 0 0 / 0.1);
+      padding: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .movie-item {
+      display: flex;
+      align-items: center;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid #eee;
+    }
+    .movie-item:last-child {
+      border-bottom: none;
+    }
+    .movie-poster {
+      width: 50px;
+      height: 75px;
+      object-fit: cover;
+      margin-right: 1rem;
+      border-radius: 4px;
+    }
+    .country-flag {
+      width: 40px;
+      height: auto;
+      margin-right: 10px;
+      border: 1px solid #ddd;
+    }
+    .movie-rating {
+      color: #ffc107;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<header>🌐 InfoNow - Informações Dinâmicas</header>
+
+<main class="container my-4">
+  <div class="row g-4 justify-content-center">
+    <div class="col-md-5 col-lg-4">
+      <div class="card p-4 text-center">
+        <div><i class="bi bi-cloud-sun-fill icon"></i></div>
+        <h3 class="my-3">Clima Atual</h3>
+        <div id="weatherInfo" class="fs-5 text-secondary">Detectando localização...</div>
+      </div>
+    </div>
+
+    <div class="col-md-5 col-lg-4">
+      <div class="card p-4">
+        <div class="text-center mb-3">
+          <i class="bi bi-currency-exchange icon"></i>
+          <h3 class="mt-2">Cotação (BRL)</h3>
+        </div>
+        <div id="currencyInfo" class="fs-5 text-secondary">Carregando cotações...</div>
+      </div>
+    </div>
+
+    <!-- Card: Informações sobre Países -->
+    <div class="col-md-5 col-lg-4">
+      <div class="card p-4">
+        <div class="text-center mb-3">
+          <i class="bi bi-globe-americas icon"></i>
+          <h3 class="mt-2">Informações sobre Países</h3>
+        </div>
+        <div class="mb-3">
+          <input type="text" id="countryInput" class="form-control" placeholder="Digite um país (em inglês)">
+        </div>
+        <button id="searchCountry" class="btn btn-primary w-100 mb-3">Buscar</button>
+        <div id="countryInfo" class="fs-5 text-secondary">
+          <p class="text-center">Digite um país para pesquisar</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  const weatherCodes = {
+    0: {desc: "Céu limpo", emoji:"☀️"},
+    1: {desc: "Principalmente limpo", emoji:"🌤️"},
+    2: {desc: "Parcialmente nublado", emoji:"⛅"},
+    3: {desc: "Nublado", emoji:"☁️"},
+    45: {desc: "Neblina", emoji:"🌫️"},
+    48: {desc: "Depósito de gelo", emoji:"🌫️"},
+    51: {desc: "Chuvisco leve", emoji:"🌦️"},
+    53: {desc: "Chuvisco moderado", emoji:"🌦️"},
+    55: {desc: "Chuvisco denso", emoji:"🌧️"},
+    56: {desc: "Chuvisco congelante leve", emoji:"🌧️❄️"},
+    57: {desc: "Chuvisco congelante denso", emoji:"🌧️❄️"},
+    61: {desc: "Chuva leve", emoji:"🌧️"},
+    63: {desc: "Chuva moderada", emoji:"🌧️"},
+    65: {desc: "Chuva forte", emoji:"⛈️"},
+    66: {desc: "Chuva congelante leve", emoji:"🌧️❄️"},
+    67: {desc: "Chuva congelante forte", emoji:"🌧️❄️"},
+    71: {desc: "Neve leve", emoji:"🌨️"},
+    73: {desc: "Neve moderada", emoji:"🌨️"},
+    75: {desc: "Neve forte", emoji:"❄️"},
+    77: {desc: "Granizo", emoji:"🌨️"},
+    80: {desc: "Chuva de pancadas leve", emoji:"🌦️"},
+    81: {desc: "Chuva de pancadas forte", emoji:"🌧️"},
+    82: {desc: "Chuva de pancadas violenta", emoji:"⛈️"},
+    85: {desc: "Neve de pancadas leve", emoji:"🌨️"},
+    86: {desc: "Neve de pancadas forte", emoji:"❄️"},
+    95: {desc: "Tempestade com trovões", emoji:"⛈️"},
+    96: {desc: "Tempestade com trovões e granizo leve", emoji:"⛈️"},
+    99: {desc: "Tempestade com trovões e granizo forte", emoji:"⛈️"},
+  };
+
+  // Função para buscar o clima
+  async function fetchWeather(lat, lon) {
+    try {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&temperature_unit=celsius`;
+      const res = await fetch(url);
+      if(!res.ok) throw new Error('Erro ao obter clima');
+      const data = await res.json();
+      return data.current_weather;
+    } catch {
+      return null;
+    }
+  }
+
+  // Função para buscar cotações
+  async function fetchCurrency() {
+    try {
+      const res = await fetch("https://api.frankfurter.app/latest?from=BRL&to=USD,EUR,GBP");
+      if (!res.ok) throw new Error('Erro na cotação');
+      const data = await res.json();
+      return data.rates;
+    } catch {
+      return null;
+    }
+  }
+  // Função para buscar informações de um país
+  async function fetchCountryInfo(countryName) {
+    try {
+      const res = await fetch(`https://restcountries.com/v3.1/name/${countryName}`);
+      if (!res.ok) throw new Error('País não encontrado');
+      const data = await res.json();
+      return data[0]; // Retorna o primeiro resultado
+    } catch (error) {
+      console.error("Erro ao buscar país:", error);
+      return null;
+    }
+  }
+
+  // Atualiza o card do clima
+  async function updateWeather() {
+    const weatherDiv = document.getElementById("weatherInfo");
+
+    if (!navigator.geolocation) {
+      weatherDiv.textContent = "Geolocalização não suportada.";
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(async position => {
+      const { latitude, longitude } = position.coords;
+      const weather = await fetchWeather(latitude, longitude);
+      if(!weather) {
+        weatherDiv.textContent = "Não foi possível obter o clima.";
+        return;
+      }
+
+      const code = weather.weathercode;
+      const desc = weatherCodes[code]?.desc || "Desconhecido";
+      const emoji = weatherCodes[code]?.emoji || "❓";
+      const temp = weather.temperature;
+
+      weatherDiv.innerHTML = `
+        <div style="font-size:3rem">${emoji}</div>
+        <strong>Temperatura:</strong> ${temp.toFixed(1)} °C<br/>
+        <strong>Condição:</strong> ${desc}
+      `;
+    }, () => {
+      weatherDiv.textContent = "Permissão para geolocalização negada.";
+    });
+  }
+
+  // Atualiza o card de cotações
+  async function updateCurrency() {
+    const currencyDiv = document.getElementById("currencyInfo");
+    const rates = await fetchCurrency();
+    if(!rates) {
+      currencyDiv.textContent = "Não foi possível carregar cotações.";
+      return;
+    }
+
+    const currencies = {
+      USD: {name: "Dólar Americano", emoji: "💵"},
+      EUR: {name: "Euro", emoji: "💶"},
+      GBP: {name: "Libra Esterlina", emoji: "💷"},
+    };
+
+    let html = '<div class="d-flex flex-column gap-3">';
+    for (const code of Object.keys(currencies)) {
+      const {name, emoji} = currencies[code];
+      const value = rates[code];
+      html += `
+        <div>
+          <div style="font-size:2.5rem; display:inline-block; vertical-align:middle;">${emoji}</div>
+          <div style="display:inline-block; vertical-align:middle; margin-left: 1rem;">
+            <div class="fw-bold fs-5">${name} (${code})</div>
+            <div>1 BRL = <span class="text-primary fw-semibold">${value.toFixed(4)}</span> ${code}</div>
+          </div>
+        </div>
+      `;
+    }
+    html += '</div>';
+
+    currencyDiv.innerHTML = html;
+  }
+
+  // Configura o evento de busca de país
+  function setupCountrySearch() {
+    const searchBtn = document.getElementById("searchCountry");
+    const countryInput = document.getElementById("countryInput");
+    const countryInfoDiv = document.getElementById("countryInfo");
+
+    searchBtn.addEventListener("click", async () => {
+      const countryName = countryInput.value.trim();
+      if (!countryName) {
+        countryInfoDiv.innerHTML = '<p class="text-center text-danger">Por favor, digite um país</p>';
+        return;
+      }
+
+      countryInfoDiv.innerHTML = `
+        <div class="d-flex justify-content-center">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Carregando...</span>
+          </div>
+        </div>
+      `;
+
+      const country = await fetchCountryInfo(countryName);
+      if (!country) {
+        countryInfoDiv.innerHTML = '<p class="text-center text-danger">País não encontrado</p>';
+        return;
+      }
+
+      const languages = country.languages ? Object.values(country.languages).join(', ') : 'Não disponível';
+      const currencies = country.currencies ? Object.values(country.currencies).map(c => c.name).join(', ') : 'Não disponível';
+
+      countryInfoDiv.innerHTML = `
+        <div class="text-center mb-3">
+          <img src="${country.flags?.png}" alt="Bandeira" class="country-flag">
+          <h4>${country.name?.common || countryName}</h4>
+        </div>
+        <div class="d-flex flex-column gap-2">
+          <div><strong>Capital:</strong> ${country.capital?.[0] || 'Não disponível'}</div>
+          <div><strong>Continente:</strong> ${country.region || 'Não disponível'}</div>
+          <div><strong>População:</strong> ${country.population?.toLocaleString() || 'Não disponível'}</div>
+          <div><strong>Idiomas:</strong> ${languages}</div>
+          <div><strong>Moedas:</strong> ${currencies}</div>
+          <div><strong>Fuso Horário:</strong> ${country.timezones?.[0] || 'Não disponível'}</div>
+        </div>
+      `;
+    });
+  }
+
+  // Inicializa tudo quando a página carrega
+  window.onload = () => {
+    updateWeather();
+    updateCurrency();
+    setupCountrySearch();
+  }
+</script>
+
+</body>
+</html>
