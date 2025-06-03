@@ -147,23 +147,25 @@
       </div>
     </div>
   </div>
+  <!-- Dropbox -->
   <div class="my-4 row g-4 justify-content-center">
     <div class="dropbox col-md-4 col-lg-4">
       <div class="card p-4">
         <div class="text-center mb-3">
           <i class="icon bi bi-dropbox"></i>
           <h3 class="mt-2">Adição de Arquivos na Nuvem</h3>
-          <div id="drop-zone">
+          <div id="drop-zone" style="border: 2px dashed #ccc; padding: 20px; text-align: center; cursor: pointer;">
             <p>Arraste os arquivos aqui ou clique para selecionar</p>
-            <input type="file" id="file-input">
+            <input type="file" id="file-input" style="display: none;">
           </div>
-          <button id="dboxenviar" class="btn btn-primary w-100 mb-3">Enviar</button>
+          <button id="dboxenviar" class="btn btn-primary w-100 mb-3 mt-3">Enviar</button>
         </div>
       </div>
     </div>
   </div>
 </main>
 
+<script src="https://unpkg.com/dropbox/dist/Dropbox-sdk.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://unpkg.com/dropbox/dist/Dropbox-sdk.min.js"></script>
 <script>
@@ -207,6 +209,31 @@ async function fetchWeather(lat, lon) {
     const data = await res.json();
     return data.current_weather;
   } catch {
+    return null;
+  }
+}
+
+// Função para buscar cotaçõesAdd commentMore actions
+async function fetchCurrency() {
+  try {
+    const res = await fetch("https://api.frankfurter.app/latest?from=BRL&to=USD,EUR,GBP");
+    if (!res.ok) throw new Error('Erro na cotação');
+    const data = await res.json();
+    return data.rates;
+  } catch {
+    return null;
+  }
+}
+
+// Função para buscar informações de um paísAdd commentMore actions
+async function fetchCountryInfo(countryName) {
+  try {
+    const res = await fetch(`https://restcountries.com/v3.1/name/${countryName}`);
+    if (!res.ok) throw new Error('País não encontrado');
+    const data = await res.json();
+    return data[0]; // Retorna o primeiro resultado
+  } catch (error) {
+    console.error("Erro ao buscar país:", error);
     return null;
   }
 }
@@ -277,6 +304,53 @@ async function updateCurrency() {
   }
 }
 
+// Configura o evento de busca de paísAdd commentMore actions
+function setupCountrySearch() {
+  const searchBtn = document.getElementById("searchCountry");
+  const countryInput = document.getElementById("countryInput");
+  const countryInfoDiv = document.getElementById("countryInfo");
+
+  searchBtn.addEventListener("click", async () => {
+    const countryName = countryInput.value.trim();
+    if (!countryName) {
+      countryInfoDiv.innerHTML = '<p class="text-center text-danger">Por favor, digite um país</p>';
+      return;
+    }
+
+    countryInfoDiv.innerHTML = `
+      <div class="d-flex justify-content-center">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Carregando...</span>
+        </div>
+      </div>
+    `;
+
+    const country = await fetchCountryInfo(countryName);
+    if (!country) {
+      countryInfoDiv.innerHTML = '<p class="text-center text-danger">País não encontrado</p>';
+      return;
+    }
+
+    const languages = country.languages ? Object.values(country.languages).join(', ') : 'Não disponível';
+    const currencies = country.currencies ? Object.values(country.currencies).map(c => c.name).join(', ') : 'Não disponível';
+
+    countryInfoDiv.innerHTML = `
+      <div class="text-center mb-3">
+        <img src="${country.flags?.png}" alt="Bandeira" class="country-flag">
+        <h4>${country.name?.common || countryName}</h4>
+      </div>
+      <div class="d-flex flex-column gap-2">
+        <div><strong>Capital:</strong> ${country.capital?.[0] || 'Não disponível'}</div>
+        <div><strong>Continente:</strong> ${country.region || 'Não disponível'}</div>
+        <div><strong>População:</strong> ${country.population?.toLocaleString() || 'Não disponível'}</div>
+        <div><strong>Idiomas:</strong> ${languages}</div>
+        <div><strong>Moedas:</strong> ${currencies}</div>
+        <div><strong>Fuso Horário:</strong> ${country.timezones?.[0] || 'Não disponível'}</div>
+      </div>
+    `;
+  });
+}
+
 // ----------------------------------------------------------------------------------------------
 // Dropbox
 
@@ -284,41 +358,83 @@ const dropZone = document.getElementById("drop-zone");
 const fileInput = document.getElementById("file-input");
 const uploadButton = document.getElementById("dboxenviar");
 
-const UPLOAD_ACCESS_TOKEN = "sl.u.AFwK7kN7fBoGmPgNCFKi34C0hFr0p0BLkwxaJiu-_VmC95cVlDyJIXR7a-jBjI6b47nHhwZ-E2ZPoVdcKEBOHoiVBXlboExW1_CziJiBUu_sD0MfWS2MQBRKHdXg33EShvHzOEHxhDqQkGPaUytWcmVEGJ3weT1kk_WtdJlwE2LOTuFIpxl9upkF5TCQgkOGm4MeVm9YaksCp6yxNq7OOG2fNOR5Yj69nZpojnPlxtRLkxqeJwiTkw6KO_xeQoqqsxvWf1YR7gc-zwxLXAXj9MmjBysc7efMcE5i1AvqPEpxItkek1AMwjILgzTTgCHbUiJyMSTaRvWeqIllINCQ0-oFjfCi2LwqRFPvnQ6eJ76eSfn35IUnb9Js_J4a73sXkQsYI96-pFHZLOiSkNNyYGwxO6Hjznjuchs3oD42LGeLY6mxKKliYUNdznHIeXx-iaP2y_8KGPSxz8WaLH8lrcPaSTqGi6D_abkXaWKPUZ1sF0SGYUBJdZEmbw2VazeJJHth60Qz_BcT1rkFf8rt2JmhmONmNMyWZBTJdBXXgGX-apiYhGgsy-sN1qizOI3Zxzp3IO_lO3maK-bh5BaSw-VmKCWrf20UPVhNiDPlEPFBmPaDb4kb-tFExu6BuAwYMBW6NtKaa0lFGNtVyt1Y25ur7XtvqA3B2McuBLh6CteNaO_fHX4IxzsgH1lIEqNYmihn1hSZW3IJPlD8ZLS5IiglQlb5A9-j5Y5rBiCpcStC6iAhBpea_wrqcWX6fRB-1OEQxG-JPDAQaR5VKCiQYVOYc7NhiZRPVeQXXAFOgIvo5o-iGjc_rsJTHYntfMjj9zQYOcsthKXahd59QOmkBqnHmZcqQkJXgWvMrgJlql9aUTBvJ41jKvqip9ymoVxsxBGggCiRP43UwTjjj8C6uUxXRWprg1g1SMOCWCiOsM-uWqje6klBXuVRa1bDBnRWlFJ3T6PJd7zsvoTmMglYZTtLJWIiD7SNjpETaR5ZviECdJu-S5RZgo_PRTaIqxUdrEeVHlvdc0c1DGSBjam8cRv8SqCscla_IVYSBE0iQTBroPYcVXWwiW6s_WY14bQ4z5LQlmdVoqXHylxmX3IdkyGotetBvOXdnwpMQbYlNCPOYHuX3j15gu70nQ7EFykgZx4j9TPq9TJz1FCZGs5Y-MzY5qdRlGXypb_Pz-2nokg3uvfBPhYS6vUmDRsRz2-tk_aOujTcuk86pWNQwESYPKvaY4oKF0k9CKKweNK0rT7xrIzv_Md4MhBrrWl8ebZ8ElyRRVaT_rNd4zmw0gMIRsLgV0wsShoaR7QvvSv9XkFGSEdomw2miNYdMa1U_VnVf5G-4soV9adYxiEstQWguH-8hPFgxXEypNa9qiJGjsT-M9s2DfYUSCGi7hHg-ldeQym0EZU_fOE2cjw94vAaq31cl4lat4sOnTamDnVfYSMEAw";
+const UPLOAD_ACCESS_TOKEN = "sl.u.AFxdbWWz8QQmxF_OZf9_CkE_xhytt7_7TWgJJux4h5NiQ9YSSn46GZip0m4GlUA2JYpgrERTocJjzPLtu7lcf35A8WQb5dFfcs-1veHXBILcEpHC4ckzuww8LgOHij2T6q8JpONThgZo44n_iTjCHUjrYK4TiBX13DFcgT_dJWLPrjY0vzFt72gY0gtiE7D6NqOLv1rDWX1dHWl9KlamJxpS1RyXcQZyUcx0Dp-4UMTBq9J7H0EShhcSCe9D7uMVmCy2styE3yGfkcDGjW-PcAaJj83h_PAXVbDn-IK4kK8KZ2-18_IzRqfYN8TU97ynOooueZrbd-k9LoI3MRCJG3kk6HZeZ0td-WYHEhB5onjyYXinrI0Ton1ab97WQ6qrdEHBb_H64mi_AuUF16XC34z_UzGN2hYlPMgGye5RN0t5clyrWIkQnPiBxw8LSId0tJ0-Nz7OkuSf7HJVuGfOpygo4lrZwls7r_MknMzSfJBuuz-4cHh67-sav7BG6mvZ1_6H2t5mcVdJSbR8-Z70XsP2y9dtNx7zgO2ZqHXS9V8cxZpM5j2CT5AwCdAEOkzQt6LcxyULY7DkVAYTFrx81Y1TKVgeT4FQkPcu7ZWrSK4F2fZEqhhfp5JVbfW_LIngr92mWZEC0X1dXHwfip3IRhCANX085y3KN0tcbvOgSSbja-7MSscedj7fvTHWYsNfq790evywk_CUtXJjUkPQjsRrxQS2B2aUlWNAxj8Zo5Jei3C4_-CqNG8wCq2i8-vIAYRvgSp6sKqtrS8IZ8U1ShYhW0Za_nJleNsXNcHjqS3VdCq1IWtrMlY6vEXQfJtPXFP7tiDx-kFqgNSdO_IPszzsh_XMSkbUkjYLwqSYxv-k5ijAXiRGqljV8glvYtYSdDE1aSu6CfbQA42m3suArEkL6LPW4HK3UW42pzBzH2M1od_1x_ST8IQ9ud7TFD8up1QEP3XPcHyOFpc5HUTFBH0cjxTEMPVmR1RfzH8vDaGhPGJ5cAqf_Y67DkasDulsKTkuOdZ8LdiGEtgPZ_6PHvuQKPYV_XL67zFDqMMiyuPgaN-fECp5LBRmd9F6wL4PMFF0Fb22u5gwcKQykmMj0RO7i13S6WRbgk7soKjht7Rb5KhIFqwIHut2MJMlUG0lusMeCNRW3AiouZuocTKYHPvCs5k4yL9P49YfkXj5hn-gpqkvqqgH0iricn3QxYvQanwxQIzR2dQcqGfyu6IR7mAF_NhQV1v_ffb1c4g_ePrqfGsYXgnG0UUs6lk_NFYET3UIPXzyBfb65G5b6aKcYSK-WeWZ-XpE0IpHaLVp8tcHqbzeuBrwODIu5GlJCHL23Hlrwoi4Agc-PYjRMuJ9dDajnr646e1Zyjk5ayy8qkjWI6DBSVAXki23pmJ7kdiPo1XHDw8NG8Rq9czfwKBPDqmI25pDWqc0J847x50pSbWRug";
+
 const dbx = new Dropbox.Dropbox({ accessToken: UPLOAD_ACCESS_TOKEN });
 
 async function uploadFile(file) {
-  const reader = new FileReader();
-  reader.onload = async function (event) {
-    try {
-      const response = await dbx.filesUpload({
-        path: `/${file.name}`,
-        contents: event.target.result,
-      });
-      alert("Arquivo enviado para o Dropbox!");
-    } catch {
-      alert("Erro ao enviar arquivo.");
+    if (!file) {
+        alert("Por favor, selecione um arquivo para enviar.");
+        return;
     }
-  };
-  reader.readAsArrayBuffer(file);
+
+    const filePath = "/Pastinha/" + file.name; 
+    
+    try {
+        const response = await dbx.filesUpload({
+            path: filePath,
+            contents: file,
+            mode: { ".tag": "add" }, 
+            autorename: true,
+            mute: false
+        });
+
+        console.log("Resposta da API Dropbox:", response);
+        alert("Arquivo enviado com sucesso para o Dropbox!");
+    } catch (error) {
+        console.error("Erro ao enviar arquivo:", error);
+        if (error.error && error.error.error_summary) {
+            alert(`Erro ao enviar arquivo: ${error.error.error_summary}`);
+        } else {
+            alert("Erro ao enviar arquivo. Verifique o console para mais detalhes.");
+        }
+    }
 }
 
-dropZone.addEventListener("dragover", (e) => e.preventDefault());
-dropZone.addEventListener("drop", (e) => {
-  e.preventDefault();
-  if (e.dataTransfer.files.length) uploadFile(e.dataTransfer.files[0]);
-});
-dropZone.addEventListener("click", () => fileInput.click());
-fileInput.addEventListener("change", (e) => {
-  if (e.target.files.length) uploadFile(e.target.files[0]);
-});
-uploadButton.addEventListener("click", () => {
-  if (fileInput.files.length) uploadFile(fileInput.files[0]);
+// Event Listeners
+dropZone.addEventListener("dragover", (e) => {
+    e.preventDefault(); 
+    dropZone.style.backgroundColor = "#e0e0e0"; 
 });
 
+dropZone.addEventListener("dragleave", () => {
+    dropZone.style.backgroundColor = ""; 
+});
+
+dropZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropZone.style.backgroundColor = ""; 
+    if (e.dataTransfer.files.length) {
+        uploadFile(e.dataTransfer.files[0]);
+    }
+});
+
+dropZone.addEventListener("click", () => {
+    fileInput.click();
+});
+
+fileInput.addEventListener("change", (e) => {
+    if (e.target.files.length) {
+        uploadFile(e.target.files[0]);
+    }
+});
+
+uploadButton.addEventListener("click", () => {
+    if (fileInput.files.length) {
+        uploadFile(fileInput.files[0]);
+    } else {
+        alert("Por favor, selecione um arquivo primeiro.");
+    }
+});
+
+// -----------------------------------------------------------------------------------
+
+
+// Inicializa tudo quando a página carrega
 window.onload = () => {
   updateWeather();
   updateCurrency();
+  setupCountrySearch();
 };
 </script>
 
