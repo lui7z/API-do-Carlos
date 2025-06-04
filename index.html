@@ -154,6 +154,14 @@
       </div>
     </div>
   </div>
+  <!-- Obra de Arte -->
+    <div class="col-md-5 col-lg-4">
+      <div class="card p-4 text-center">
+        <div><i class="bi bi-image-fill icon"></i></div>
+        <h3 class="my-3">Obra de Arte do Dia</h3>
+        <div id="artInfo" class="fs-6 text-secondary">Carregando obra...</div>
+      </div>
+    </div>
   <!-- Dropbox -->
   <div class="my-4 row g-4 justify-content-center">
     <div class="dropbox col-md-4 col-lg-4">
@@ -398,6 +406,48 @@ async function uploadFile(file) {
     }
 }
 
+async function fetchArtwork() {
+    try {
+      const res = await fetch("https://api.artic.edu/api/v1/artworks?limit=1&fields=id,title,artist_display,image_id");
+      if (!res.ok) throw new Error('Erro na API de obras');
+      const data = await res.json();
+      console.log("Artwork API data:", data);
+
+      const art = data.data[0];
+      if (!art || !art.image_id) {
+        console.warn("Nenhuma obra com image_id encontrada");
+        return null;
+      }
+
+      const imageUrl = `https://www.artic.edu/iiif/2/${art.image_id}/full/400,/0/default.jpg`;
+
+      return {
+        title: art.title,
+        artist: art.artist_display || "Autor desconhecido",
+        imageUrl
+      };
+    } catch (e) {
+      console.error("Erro fetchArtwork:", e);
+      return null;
+    }
+  }
+
+  async function updateArtwork() {
+    const artDiv = document.getElementById("artInfo");
+    const art = await fetchArtwork();
+
+    if (!art) {
+      artDiv.innerHTML = `<p class="text-danger">Erro ao carregar obra.</p>`;
+      return;
+    }
+
+    artDiv.innerHTML = `
+      <img src="${art.imageUrl}" alt="${art.title}" class="img-fluid rounded mb-3" style="max-height: 250px;">
+      <div><strong>${art.title}</strong></div>
+      <div class="text-muted">${art.artist}</div>
+    `;
+  }
+
 // Event Listeners
 dropZone.addEventListener("dragover", (e) => {
     e.preventDefault(); 
@@ -442,6 +492,7 @@ window.onload = () => {
   updateWeather();
   updateCurrency();
   setupCountrySearch();
+  updateArtwork();
 };
 </script>
 
