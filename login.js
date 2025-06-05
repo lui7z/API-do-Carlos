@@ -39,7 +39,7 @@ async function login() {
   
   function logout() {
     auth0.logout({
-      returnTo: window.location.origin + "/login.html"
+      returnTo: window.location.origin + "login.html"
     });
   }
 
